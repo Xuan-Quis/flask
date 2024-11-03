@@ -21,7 +21,7 @@
                 {% for upload in uploads %}
                 <tr>
                     <td>{{ upload['filename'] }}</td>
-                    <td>{{ upload['upload_time'].strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td>{{ upload['upload_time'].strftime('%Y-%m-%d %H:%M:%S') }}
                     <td>
                         <img src="{{ upload['file_path'] }}" alt="{{ upload['filename'] }}" style="width: 200px; height: auto;"> <!-- Tăng kích thước ảnh -->
                     </td>

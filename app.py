@@ -24,7 +24,7 @@ def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/upload', methods=['POST'])
+@app.route('/uploads', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
         return jsonify({'error': 'No file part'}), 400
@@ -49,11 +49,12 @@ def upload_file():
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
+
         # Lưu thông tin vào MongoDB
         upload_data = {
             "filename": filename,
             "file_path": file_path,
-            "upload_time": local_time  # Lưu thời gian theo giờ Việt Nam
+            "upload_time": local_time.isoformat()  # Lưu thời gian theo giờ Việt Nam
         }
         collection.insert_one(upload_data)
 
@@ -69,7 +70,14 @@ def upload_file():
 
 @app.route('/uploads', methods=['GET'])
 def list_uploads():
-    uploads = collection.find()
+    uploads = list(collection.find())
+    vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')
+
+    for upload in uploads:
+        upload_time = upload['upload_time']
+        upload_time = datetime.fromisoformat(upload_time).astimezone(vn_tz)
+        upload['upload_time'] = upload_time
+
     return render_template('uploads.html', uploads=uploads)
 
 if __name__ == '__main__':
