@@ -1,7 +1,7 @@
+import pytz
 from flask import Flask, request, jsonify, render_template
-from werkzeug.utils import secure_filename
 from pymongo import MongoClient
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 
 app = Flask(__name__)
@@ -24,7 +24,6 @@ def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -39,18 +38,18 @@ def upload_file():
         # Lấy đuôi file
         file_extension = file.filename.rsplit('.', 1)[1].lower()
 
-        # Tạo tên file mới bằng ngày giờ hiện tại
-        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-        filename = f"{timestamp}.{file_extension}"  # Tên file là ngày giờ với đuôi file giữ nguyên
+        # Lấy thời gian UTC và chuyển đổi sang múi giờ Việt Nam
+        utc_time = datetime.utcnow()  # Thời gian UTC
+        vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')  # Múi giờ Việt Nam
+        local_time = utc_time.replace(tzinfo=pytz.utc).astimezone(vn_tz)  # Chuyển đổi sang giờ Việt Nam
+
+        # Tạo tên file mới bằng giờ Việt Nam
+        filename = local_time.strftime('%Y%m%d_%H%M%S') + f".{file_extension}"  # Tên file là ngày giờ theo giờ Việt Nam với đuôi file giữ nguyên
 
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file.save(file_path)
 
         # Lưu thông tin vào MongoDB
-        utc_time = datetime.utcnow()  # Thời gian UTC
-        vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')  # Múi giờ Việt Nam
-        local_time = utc_time.astimezone(vn_tz)  # Chuyển đổi sang giờ Việt Nam
-
         upload_data = {
             "filename": filename,
             "file_path": file_path,
@@ -62,10 +61,12 @@ def upload_file():
             'message': 'File uploaded successfully',
             'filename': filename,
             'file_path': file_path,
-            'upload_time': local_time.strftime('%Y-%m-%d %H:%M:%S')  # Chuyển đổi về dạng chuỗi
+            'upload_time': local_time.strftime('%Y-%m-%d %H:%M:%S %z')  # Chuyển đổi về dạng chuỗi
         }), 201
 
     return jsonify({'error': 'File not allowed'}), 400
+
+
 @app.route('/uploads', methods=['GET'])
 def list_uploads():
     uploads = collection.find()
