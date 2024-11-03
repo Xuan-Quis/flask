@@ -47,10 +47,14 @@ def upload_file():
         file.save(file_path)
 
         # Lưu thông tin vào MongoDB
+        utc_time = datetime.utcnow()  # Thời gian UTC
+        vn_tz = pytz.timezone('Asia/Ho_Chi_Minh')  # Múi giờ Việt Nam
+        local_time = utc_time.astimezone(vn_tz)  # Chuyển đổi sang giờ Việt Nam
+
         upload_data = {
             "filename": filename,
             "file_path": file_path,
-            "upload_time": datetime.utcnow()  # Lưu thời gian UTC
+            "upload_time": local_time  # Lưu thời gian theo giờ Việt Nam
         }
         collection.insert_one(upload_data)
 
@@ -58,7 +62,7 @@ def upload_file():
             'message': 'File uploaded successfully',
             'filename': filename,
             'file_path': file_path,
-            'upload_time': upload_data['upload_time'].strftime('%Y-%m-%d %H:%M:%S')  # Chuyển đổi về dạng chuỗi
+            'upload_time': local_time.strftime('%Y-%m-%d %H:%M:%S')  # Chuyển đổi về dạng chuỗi
         }), 201
 
     return jsonify({'error': 'File not allowed'}), 400
